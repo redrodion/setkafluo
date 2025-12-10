@@ -6,4 +6,4 @@ Pillow
 ipywidgets
 IPython
 jupyter
-tensorflow
+
