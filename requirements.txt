@@ -1,0 +1,9 @@
+numpy
+matplotlib
+tifffile
+imageio
+Pillow
+ipywidgets
+IPython
+jupyter
+
