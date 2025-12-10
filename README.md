@@ -31,11 +31,15 @@ Other scientific contributors are listed in the preprint.
 
 ---
 
+
 ## How to Test-Drive This Library Through Dedicated Jupyter Notebooks Using Google Colab
 
 The fastest way to explore **SetkaFluo** is to run the tutorial notebooks directly in Google Colab, using the example datasets published on Zenodo.
 
 This setup requires **no local installation**, **no GPU configuration**, and **no manual environment management**. A free Google account is sufficient.
+
+For the local installation:
+➡ **[Jump to: Repository Overview & Installation](#repository-overview)**
 
 ### 1. Download the Example Dataset (Zenodo)
 
@@ -100,9 +104,6 @@ The notebooks will run without modification on standard Colab GPU runtimes.
 
 If you prefer to run the library on your own workstation (Python environment + TensorFlow), see:
 
-➡ **[Jump to: Repository Overview & Installation](#repository-overview)**
-
-This section provides full instructions for creating a dedicated environment and installing all dependencies.
 
 ---
 
