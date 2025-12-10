@@ -1,14 +1,22 @@
-# SetkaFluo – Noise2Noise denoising for XRF with multi-element detectors
+# SetkaFluo: a Multi-Element Detector Denoising Framework
 
-This repository contains the reference implementation of the **SetkaFluo** framework
-for self-supervised denoising of X-ray fluorescence (XRF) microscopy data acquired
-with multi-element detectors. The method and results are described in:
+Tired of averaging your multi-element detector data and pretending that's the best we can do? Convinced there must be a smarter way? **SetkaFluo** is exactly that: a small library built to squeeze more information out of the data you already collect.
 
-> R. Shishkov, A. Laugros, N. Vigano, S. Bohic, D. Karpov, P. Cloetens  
-> *Self-Supervised Deep-Learning Denoising for X-Ray Fluorescence Microscopy with Multi-Element Detectors*  
-> ChemRxiv (2025), DOI: [10.26434/chemrxiv-2025-lsxpc](https://doi.org/10.26434/chemrxiv-2025-lsxpc)
+Using the Noise2Noise framework, SetkaFluo takes advantage of what your experiment naturally provides: repeated, independent noisy observations of the same underlying signal. Whether you're working with XRF or any modality where multiple detector elements observe the same spot, the structure is consistent and only the noise changes. That's exactly what we exploit.
 
-Please refer to the preprint for the full scientific context, evaluation, and figures.
+A U-Net architecture handles the heavy lifting. Instead of blurring or smudging away your details, the network learns to separate actual structure from randomness, restoring that crisp, "salt-free" look without supervision, ground truth, or elaborate parameter tuning.
+
+The library is designed to work out-of-the-box on Google Colab, including on free-tier machines (a T4 may need a coffee break or two, but it gets the job done).
+
+To help you get started quickly, we include step-by-step Jupyter Notebooks that introduce the ideas, workflow, and practical details. The notebooks contain all essential explanations, so reading the comments is highly recommended.
+
+## Publication
+
+This package is the core implementation of our manuscript currently available as a preprint:
+
+**Shishkov R, Laugros A, Vigano N, Bohic S, Karpov D ✉, Cloetens P ✉.** Self-Supervised Deep-Learning Denoising for X-Ray Fluorescence Microscopy with Multi-Element Detectors. *ChemRxiv*. 2025; doi:[10.26434/chemrxiv-2025-lsxpc](https://doi.org/10.26434/chemrxiv-2025-lsxpc)
+
+*This content is a preprint and is currently in peer-review.*
 
 ---
 
@@ -20,6 +28,81 @@ This repository is jointly developed and maintained by:
 - **Dmitry Karpov** – co-developer and supervising contributor (CEA, UGA, ESRF)  
 
 Other scientific contributors are listed in the preprint.
+
+---
+
+## How to Test-Drive This Library Through Dedicated Jupyter Notebooks Using Google Colab
+
+The fastest way to explore **SetkaFluo** is to run the tutorial notebooks directly in Google Colab, using the example datasets published on Zenodo.
+
+This setup requires **no local installation**, **no GPU configuration**, and **no manual environment management**. A free Google account is sufficient.
+
+### 1. Download the Example Dataset (Zenodo)
+
+The data needed for the notebooks are provided in the Zenodo archive:
+
+**https://doi.org/10.5281/zenodo.17871605**
+
+It contains two files:
+- `input_data.zip` — fitted XRF maps and detector-element images
+- `training.zip` — detector-element stacks for constructing Noise2Noise training pairs
+
+These datasets correspond to the preprint:
+
+> Shishkov R, Laugros A, Vigano N, Bohic S, Karpov D, Cloetens P.  
+> *Self-Supervised Deep-Learning Denoising for X-Ray Fluorescence Microscopy with Multi-Element Detectors.*  
+> ChemRxiv (2025). doi:[10.26434/chemrxiv-2025-lsxpc](https://doi.org/10.26434/chemrxiv-2025-lsxpc)
+
+### 2. Set Up Your Google Drive Folder
+
+In your Google Drive, create:
+```
+MyDrive/setkafluo_demo/
+```
+
+Place and unzip both archives inside this folder. After extraction, you should have:
+```
+MyDrive/setkafluo_demo/input_data/
+MyDrive/setkafluo_demo/training/
+```
+
+### 3. Add the Notebooks and Library Code
+
+From this GitHub repository, copy:
+- the five tutorial notebooks, and
+- the `libs/` directory
+
+into:
+```
+MyDrive/setkafluo_demo/notebooks_and_library/
+    01_data_exploration.ipynb
+    02_denoising_prep.ipynb
+    03_denoising_params.ipynb
+    04_denoising_main.ipynb
+    05_denoising_compare.ipynb
+    libs/
+```
+
+This reproduces the environment used to generate the figures and benchmarks shown in the paper and preprint.
+
+### 4. Run the Notebooks in Google Colab
+
+Open any of the notebooks through Colab.
+
+All paths are already configured to expect the dataset under:
+```
+MyDrive/setkafluo_demo/
+```
+
+The notebooks will run without modification on standard Colab GPU runtimes.
+
+### Local Installation
+
+If you prefer to run the library on your own workstation (Python environment + TensorFlow), see:
+
+➡ **[Jump to: Repository Overview & Installation](#repository-overview)**
+
+This section provides full instructions for creating a dedicated environment and installing all dependencies.
 
 ---
 
@@ -96,7 +179,6 @@ installing TensorFlow with `pip`:
   https://www.tensorflow.org/install/pip
 
 In short (Linux/macOS example):
-
 ```bash
 # Create and activate a virtual environment (name it as you like)
 python3 -m venv tf-env
@@ -113,7 +195,6 @@ pip install tensorflow
 ```
 
 Make sure you can import TensorFlow inside the environment:
-
 ```bash
 python -c "import tensorflow as tf; print(tf.__version__)"
 ```
@@ -125,7 +206,6 @@ python -c "import tensorflow as tf; print(tf.__version__)"
 ### 2. Clone this repository
 
 With the virtual environment **activated**:
-
 ```bash
 git clone https://github.com/redrodion/setkafluo.git
 cd setkafluo
@@ -136,7 +216,6 @@ cd setkafluo
 There are two equivalent options:
 
 #### Option A – `pip` + `requirements.txt` (simple)
-
 ```bash
 pip install -r requirements.txt
 ```
@@ -148,7 +227,6 @@ in step 1.
 
 You can create a conda environment pre-populated with the non-TensorFlow
 dependencies:
-
 ```bash
 conda env create -f environment.yml
 conda activate setkafluo
@@ -166,12 +244,11 @@ Once the environment is set up and dependencies are installed:
 1. **Launch Jupyter**
 
    From the activated environment:
-
-   ```bash
+```bash
    jupyter lab
    # or
    jupyter notebook
-   ```
+```
 
 2. **Run the notebooks in order**
 
@@ -184,8 +261,7 @@ Once the environment is set up and dependencies are installed:
 3. **Use the library in your own scripts**
 
    You can also import the core functions directly:
-
-   ```python
+```python
    from libs.denoise import (
        make_unet,
        make_dataset,
@@ -197,7 +273,7 @@ Once the environment is set up and dependencies are installed:
        load_npz_cube_channels_last,
        sum_channels_window,
    )
-   ```
+```
 
    See the notebooks for concrete examples of how to construct training pairs,
    configure the model, and run inference on large XRF maps.
@@ -207,15 +283,11 @@ Once the environment is set up and dependencies are installed:
 ## Data and external resources
 
 - **Preprint (ChemRxiv)** – full method and evaluation:  
-  https://chemrxiv.org/engage/chemrxiv/article-details/6899b33f728bf9025ef81f5a  
+  https://doi.org/10.26434/chemrxiv-2025-lsxpc 
 
 - **Public dataset (Zenodo)** – Siemens star and human cancer cell XRF data used
   in the paper:  
-  _[Zenodo link to be added by authors]_  
-
-- **Google Colab demo** – online notebook that sets up the environment, downloads
-  example data, and runs a minimal denoising workflow:  
-  _[Colab link to be added by authors]_  
+  https://doi.org/10.5281/zenodo.17871605
 
 Please consult the preprint for detailed information about sample preparation,
 acquisition parameters, and preprocessing.
@@ -229,19 +301,23 @@ Main contributors of this repository:
 - **Rodion Shishkov** – ESRF, Université Grenoble Alpes (UGA)  
 - **Dmitry Karpov** – CEA / IRIG-MEM, Université Grenoble Alpes (UGA), ESRF  
 
-Contact (to be finalised):
-
-- Primary contact: _[Rodion email to be added]_  
-- Secondary contact: _[Dmitry email to be added]_  
-
 ---
 
 ## License
 
-This project is distributed under the **MIT License**.
+This project is distributed under the **Creative Commons Attribution–NonCommercial 4.0 International License (CC BY-NC-4.0)**.
 
-See the `LICENSE` file for the full text. Please check your institutional policies
-before using the code in commercial settings.
+You are free to:
+
+- **Share** — copy and redistribute the material in any medium or format  
+- **Adapt** — remix, transform, and build upon the material  
+
+Under the following terms:
+
+- **Attribution** — you must give appropriate credit and provide a link to the license.  
+- **NonCommercial** — commercial use is strictly prohibited without prior written permission from the authors and ESRF.  
+
+See the `LICENSE` file for the full legal text.
 
 ---
 
