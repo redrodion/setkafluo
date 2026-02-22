@@ -12,11 +12,9 @@ To help you get started quickly, we include step-by-step Jupyter Notebooks that 
 
 ## Publication
 
-This package is the core implementation of our manuscript currently available as a preprint:
+This package is the core implementation of our manuscript:
 
-**Shishkov R, Laugros A, Vigano N, Bohic S, Karpov D ✉, Cloetens P ✉.** Self-Supervised Deep-Learning Denoising for X-Ray Fluorescence Microscopy with Multi-Element Detectors. *ChemRxiv*. 2025; doi:[10.26434/chemrxiv-2025-lsxpc](https://doi.org/10.26434/chemrxiv-2025-lsxpc)
-
-*This content is a preprint and is currently in peer-review.*
+**Shishkov R, Laugros A, Vigano N, Bohic S, Karpov D ✉, Cloetens P ✉.** Self-Supervised Deep-Learning Denoising for X-ray Fluorescence Microscopy with Multi-Element Detectors. *Analytical Chemistry*. 2026; doi:[10.1021/acs.analchem.5c05552](https://doi.org/10.1021/acs.analchem.5c05552)
 
 ---
 
@@ -336,4 +334,5 @@ If you use this code in your work, please cite:
 
 > R. Shishkov and D. Karpov  
 > *SetkaFluo: Noise2Noise Denoising for XRF with Multi-Element Detectors (code repository)*  
+
 > GitHub, https://github.com/redrodion/setkafluo (accessed YYYY-MM-DD)
