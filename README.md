@@ -14,7 +14,7 @@ To help you get started quickly, we include step-by-step Jupyter Notebooks that 
 
 This package is the core implementation of our manuscript:
 
-**Shishkov R, Laugros A, Vigano N, Bohic S, Karpov D ✉, Cloetens P ✉.** Self-Supervised Deep-Learning Denoising for X-ray Fluorescence Microscopy with Multi-Element Detectors. *Analytical Chemistry*. 2026; doi:[10.1021/acs.analchem.5c05552](https://doi.org/10.1021/acs.analchem.5c05552)
+**Shishkov R, Laugros A, Vigano N, Bohic S, Karpov D ✉, Cloetens P ✉.** Self-Supervised Deep-Learning Denoising for X-ray Fluorescence Microscopy with Multi-Element Detectors. *Analytical Chemistry*. 2026; [10.1021/acs.analchem.5c05552](https://doi.org/10.1021/acs.analchem.5c05552)
 
 ---
 
@@ -49,11 +49,11 @@ It contains two files:
 - `input_data.zip` — fitted XRF maps and detector-element images
 - `training.zip` — detector-element stacks for constructing Noise2Noise training pairs
 
-These datasets correspond to the preprint:
+These datasets correspond to the manuscript:
 
 > Shishkov R, Laugros A, Vigano N, Bohic S, Karpov D, Cloetens P.  
 > *Self-Supervised Deep-Learning Denoising for X-Ray Fluorescence Microscopy with Multi-Element Detectors.*  
-> ChemRxiv (2025). doi:[10.26434/chemrxiv-2025-lsxpc](https://doi.org/10.26434/chemrxiv-2025-lsxpc)
+> Analytical Chemistry (2026); [10.1021/acs.analchem.5c05552](https://doi.org/10.1021/acs.analchem.5c05552)
 
 ### 2. Set Up Your Google Drive Folder
 
@@ -336,3 +336,4 @@ If you use this code in your work, please cite:
 > *SetkaFluo: Noise2Noise Denoising for XRF with Multi-Element Detectors (code repository)*  
 
 > GitHub, https://github.com/redrodion/setkafluo (accessed YYYY-MM-DD)
+
