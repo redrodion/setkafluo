@@ -56,6 +56,7 @@ from . import (
 )
 
 import time
+from contextlib import nullcontext
 from dataclasses import replace
 from typing import Dict, Any, Optional, Tuple, Iterable
 
@@ -68,7 +69,6 @@ from .denoise import (
     make_unet,
     make_dataset,
     mse_loss,
-    PSNR,
 )
 
 __all__ = [
@@ -108,12 +108,12 @@ def ensure_compiled_model(cfg: DenoiseConfig, model: Optional[tf.keras.Model] = 
     if not isinstance(model, tf.keras.Model):
         model = make_unet(cfg)
         model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=cfg.lr),
-                      loss=mse_loss, metrics=[PSNR])
+                      loss=mse_loss, metrics=[])
     else:
         # If user passed a model that isn't compiled, compile it.
         if not hasattr(model, "loss") or model.loss is None:
             model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=cfg.lr),
-                          loss=mse_loss, metrics=[PSNR])
+                          loss=mse_loss, metrics=[])
     return model
 
 
@@ -230,9 +230,3 @@ def benchmark_steps(cfg: DenoiseConfig,
         "seconds_per_epoch_est": float(cfg.steps_per_epoch) / max(sps, 1e-9),
         "used_pipeline": used,
     }
-
-
-# Python 3.8 compat
-class nullcontext:
-    def __enter__(self): return self
-    def __exit__(self, *exc): return False
