@@ -16,7 +16,8 @@
 # Please cite when using this software:
 #   1. Shishkov R, Laugros A, Vigano N, Bohic S, Karpov D, Cloetens P.
 #      Self-Supervised Deep-Learning Denoising for X-Ray Fluorescence Microscopy
-#      with Multi-Element Detectors. ChemRxiv. 2025; doi:10.26434/chemrxiv-2025-lsxpc
+#      with Multi-Element Detectors. Analytical Chemistry. 2026; doi:10.1021/acs.analchem.5c05552
+#      Preprint: ChemRxiv. 2025; doi:10.26434/chemrxiv-2025-lsxpc
 #
 # Authors:
 #   Lead developer:      Rodion Shishkov <rodion.shishkov@esrf.fr>
@@ -50,7 +51,8 @@ If this package or its derivatives contribute to your research, please cite:
 
     Shishkov R, Laugros A, Vigano N, Bohic S, Karpov D, Cloetens P.
     Self-Supervised Deep-Learning Denoising for X-Ray Fluorescence Microscopy with
-    Multi-Element Detectors. ChemRxiv. 2025; doi:10.26434/chemrxiv-2025-lsxpc
+    Multi-Element Detectors. Analytical Chemistry. 2026; doi:10.1021/acs.analchem.5c05552
+    Preprint: ChemRxiv. 2025; doi:10.26434/chemrxiv-2025-lsxpc
 """
 
 # Metadata
