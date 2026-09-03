@@ -60,7 +60,7 @@ __maintainer__        = "Dmitry Karpov"
 __maintainer_email__  = "dmitry.karpov@univ-grenoble-alpes.fr"
 __license__           = "CC BY-NC 4.0"
 __copyright__         = "© 2025 European Synchrotron Radiation Facility (ESRF)"
-__version__           = "0.1.0"
+__version__           = "0.2.0"
 
 # Public API re-exports (keep imports light and explicit)
 
