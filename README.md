@@ -1,5 +1,7 @@
 # SetkaFluo: a Multi-Element Detector Denoising Framework
 
+[![DOI](https://zenodo.org/badge/1101518716.svg)](https://doi.org/10.5281/zenodo.22282669)
+
 Tired of averaging your multi-element detector data and pretending that's the best we can do? Convinced there must be a smarter way? **SetkaFluo** is exactly that: a small library built to squeeze more information out of the data you already collect.
 
 Using the Noise2Noise framework, SetkaFluo takes advantage of what your experiment naturally provides: repeated, independent noisy observations of the same underlying signal. Whether you're working with XRF or any modality where multiple detector elements observe the same spot, the structure is consistent and only the noise changes. That's exactly what we exploit.
@@ -15,6 +17,22 @@ To help you get started quickly, we include step-by-step Jupyter Notebooks that 
 This package is the core implementation of our manuscript:
 
 **Shishkov R, Laugros A, Vigano N, Bohic S, Karpov D ✉, Cloetens P ✉.** Self-Supervised Deep-Learning Denoising for X-ray Fluorescence Microscopy with Multi-Element Detectors. *Analytical Chemistry*. 2026; [10.1021/acs.analchem.5c05552](https://doi.org/10.1021/acs.analchem.5c05552)
+
+---
+
+## Versions
+
+The code used for the paper is tagged `v0.1.0-paper` and archived at
+https://doi.org/10.5281/zenodo.22282670. `main` is the maintained version (see
+`CHANGELOG.md`). To reproduce the paper exactly: `git checkout v0.1.0-paper`.
+
+What changed in `v0.2.0`:
+- Package renamed `libs` → `setkafluo`; pip-installable (`pip install -e .`).
+- Standardization rewritten as a plain per-image z-score (numerically identical; returned `std` is now σ rather than σ/μ).
+- Augmentation now samples all 8 square orientations uniformly (was 6, non-uniform).
+- Removed the PSNR monitoring metric (invalid on z-scored data; never affected training or published results).
+- Removed unused architecture options (`dropout`, `instancenorm`, `averagepool`, `upconv`, `residual`, `lambda_reg`, `reg_l1`) and the custom `nullcontext`.
+- Added docstrings with array shapes and a `pytest` test suite. The U-Net layer sequence is unchanged, so `v0.1.0-paper` weights load unchanged.
 
 ---
 
@@ -68,24 +86,10 @@ MyDrive/setkafluo_demo/input_data/
 MyDrive/setkafluo_demo/training/
 ```
 
-### 3. Add the Notebooks and Library Code
+### 3. Open a Notebook
 
-From this GitHub repository, copy:
-- the five tutorial notebooks, and
-- the `libs/` directory
-
-into:
-```
-MyDrive/setkafluo_demo/notebooks_and_library/
-    01_data_exploration.ipynb
-    02_denoising_prep.ipynb
-    03_denoising_params.ipynb
-    04_denoising_main.ipynb
-    05_denoising_compare.ipynb
-    libs/
-```
-
-This reproduces the environment used to generate the figures and benchmarks shown in the paper and preprint.
+Open a notebook; the first cell installs SetkaFluo from GitHub. The Google Drive
+layout for the *data* (step 2) is unchanged.
 
 ### 4. Run the Notebooks in Google Colab
 
@@ -109,25 +113,25 @@ If you prefer to run the library on your own workstation (Python environment + T
 
 The repository is organized in two main parts:
 
-- **`libs/` – core library**
+- **`setkafluo/` – core library**
 
   This folder contains the reusable Python code that implements the SetkaFluo pipeline.
   It can be imported from your own scripts or used directly in the notebooks.
 
-  - `libs/data_explorer.py`  
+  - `setkafluo/data_explorer.py`  
     Utilities for loading and exploring XRF hyperspectral data, including:
     - reading fitted elemental maps and detector-element images,
     - basic visualisation helpers (line profiles, spectra, map overlays),
     - helpers for constructing weighted-sum maps.
 
-  - `libs/denoise.py`  
+  - `setkafluo/denoise.py`  
     Implementation of the Noise2Noise U-Net and training/inference helpers, including:
     - model construction and configuration,
     - creation of training datasets from detector-element splits,
     - training loops and logging utilities,
     - tiled prediction functions for large XRF maps.
 
-  - `libs/denoise_benchmark.py`  
+  - `setkafluo/denoise_benchmark.py`  
     Utilities for timing and benchmarking denoising runs, e.g.:
     - measuring throughput for different patch/stride settings,
     - simple wrappers to reproduce the runtime comparisons in the paper.
@@ -166,8 +170,8 @@ We strongly recommend using a **dedicated virtual environment** for this project
 
 TensorFlow is the core dependency and should be installed following the official
 instructions for your OS and hardware (CPU/GPU). For this reason, **TensorFlow is
-not included in `requirements.txt` or `environment.yml`** – you install it first,
-then install the remaining dependencies.
+not a declared dependency of the package** – you install it first, then install
+the package. (If you prefer, `pip install -e ".[tf]"` installs it as an extra.)
 
 ### 1. Create a virtual environment and install TensorFlow
 
@@ -202,37 +206,20 @@ python -c "import tensorflow as tf; print(tf.__version__)"
 > but install TensorFlow itself with `pip` inside the environment, as recommended
 > in the official docs.
 
-### 2. Clone this repository
+### 2. Clone and install the package
 
 With the virtual environment **activated**:
 ```bash
 git clone https://github.com/redrodion/setkafluo.git
 cd setkafluo
-```
-
-### 3. Install Python dependencies
-
-There are two equivalent options:
-
-#### Option A – `pip` + `requirements.txt` (simple)
-```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 This installs all dependencies **except TensorFlow**, which you already installed
-in step 1.
-
-#### Option B – `conda` + `environment.yml` (if you prefer conda)
-
-You can create a conda environment pre-populated with the non-TensorFlow
-dependencies:
+in step 1. Alternatively, install TensorFlow in one shot as an optional extra:
 ```bash
-conda env create -f environment.yml
-conda activate setkafluo
+pip install -e ".[tf]"
 ```
-
-Then, inside this conda environment, install TensorFlow using `pip` as described
-in step 1 (following the official TensorFlow guide for your platform/GPU).
 
 ---
 
@@ -261,14 +248,14 @@ Once the environment is set up and dependencies are installed:
 
    You can also import the core functions directly:
 ```python
-   from libs.denoise import (
+   from setkafluo.denoise import (
        make_unet,
        make_dataset,
        train,
        predict_tiled,
    )
 
-   from libs.data_explorer import (
+   from setkafluo.data_explorer import (
        load_npz_cube_channels_last,
        sum_channels_window,
    )
@@ -276,6 +263,13 @@ Once the environment is set up and dependencies are installed:
 
    See the notebooks for concrete examples of how to construct training pairs,
    configure the model, and run inference on large XRF maps.
+
+4. **Run the tests**
+
+   With the dev extra installed (`pip install -e ".[dev]"`):
+```bash
+   pytest
+```
 
 ---
 
@@ -324,16 +318,16 @@ See the `LICENSE` file for the full legal text.
 
 If you use this code in your work, please cite:
 
-1. The preprint / article:
+1. The article (and preprint):
 
 > R. Shishkov, A. Laugros, N. Vigano, S. Bohic, D. Karpov, P. Cloetens  
 > *Self-Supervised Deep-Learning Denoising for X-Ray Fluorescence Microscopy with Multi-Element Detectors*  
-> ChemRxiv (2025), DOI: [10.26434/chemrxiv-2025-lsxpc](https://doi.org/10.26434/chemrxiv-2025-lsxpc)
+> Analytical Chemistry (2026), DOI: [10.1021/acs.analchem.5c05552](https://doi.org/10.1021/acs.analchem.5c05552)  
+> Preprint: ChemRxiv (2025), DOI: [10.26434/chemrxiv-2025-lsxpc](https://doi.org/10.26434/chemrxiv-2025-lsxpc)
 
-2. This code repository (GitHub URL and version / commit hash), e.g.:
+2. This code repository:
 
-> R. Shishkov and D. Karpov  
-> *SetkaFluo: Noise2Noise Denoising for XRF with Multi-Element Detectors (code repository)*  
+> R. Shishkov and D. Karpov. *SetkaFluo: Noise2Noise Denoising for XRF with Multi-Element Detectors* (software), version `v0.1.0-paper`. Zenodo (2026). https://doi.org/10.5281/zenodo.22282670
 
-> GitHub, https://github.com/redrodion/setkafluo (accessed YYYY-MM-DD)
+For the latest version use the concept DOI https://doi.org/10.5281/zenodo.22282669.
 
