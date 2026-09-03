@@ -49,7 +49,7 @@ This module provides:
 - DenoiseConfig: small, explicit configuration container (paths, LR, epochs, patch size, overlap).
 - make_unet: U-Net backbone with symmetric padding and dtype-safe float32 output (mixed precision ready).
 - make_dataset: tf.data pipeline generating Noise2Noise pairs with standardization and augmentations.
-- train: compile (Adam + MSE + PSNR) and fit, with epoch-based checkpoint saving.
+- train: compile (Adam + MSE) and fit, with epoch-based checkpoint saving.
 - predict_tiled: overlap-tiled inference with edge padding and Hann blending + de-standardization.
 - predict_all_checkpoints: batch inference across saved checkpoints (epoch-sorted) to TIFF.
 
@@ -78,22 +78,32 @@ import tifffile
 import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import (
-    Input, Conv2D, Conv2DTranspose, UpSampling2D, Dropout,
-    AveragePooling2D, MaxPooling2D, ReLU, Concatenate,
-    Lambda, LayerNormalization
+    Input, Conv2D, UpSampling2D, MaxPooling2D, ReLU, Concatenate, Lambda
 )
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.regularizers import l1, l2
 from tensorflow.keras.utils import register_keras_serializable
 
 # -----------------------
 # Utility I/O
 # -----------------------
 def save_tiff(image: np.ndarray, path: str | os.PathLike):
+    """Write an array to a TIFF file, creating parent directories as needed.
+
+    Args:
+        image: array to save, any shape/dtype tifffile accepts (e.g. (H, W) float32).
+        path: destination path; parent directories are created if missing.
+    """
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     tifffile.imwrite(str(path), image)
 
 def load_tiff(path: str | os.PathLike) -> np.ndarray:
+    """Read a TIFF file into a NumPy array.
+
+    Args:
+        path: path to a TIFF file.
+    Returns:
+        array with the file's native shape and dtype (e.g. (H, W)).
+    """
     return np.array(tifffile.imread(str(path)))
 
 # -----------------------
@@ -101,70 +111,111 @@ def load_tiff(path: str | os.PathLike) -> np.ndarray:
 # -----------------------
 @dataclass
 class DenoiseConfig:
+    """Configuration for U-Net training and tiled inference.
+
+    Each field is documented with a trailing comment below.
+    """
     # data / training
-    lr: float = 1e-5
-    batch_size: int = 4
-    patch_size: int = 32
-    steps_per_epoch: int = 128
-    epochs: int = 50
+    lr: float = 1e-5                 # Adam learning rate
+    batch_size: int = 4              # patches per training batch
+    patch_size: int = 32             # side length (px) of square training patches
+    steps_per_epoch: int = 128       # generator steps per epoch
+    epochs: int = 50                 # number of training epochs
     # model
-    input_channels: int = 1
-    output_channels: int = 1
-    start_ch: int = 64
-    depth: int = 4
-    inc_rate: float = 2.0
-    dropout: float = 0.0
-    instancenorm: bool = False
-    averagepool: bool = False
-    upconv: bool = False
-    residual: bool = False
-    lambda_reg: float = 0.0
-    reg_l1: bool = False
+    input_channels: int = 1          # channels of the input image/tensor
+    output_channels: int = 1         # channels of the network output
+    start_ch: int = 64               # feature channels at the top U-Net level
+    depth: int = 4                   # number of down/up-sampling levels
+    inc_rate: float = 2.0            # channel growth factor per level
     # inference
-    min_overlap: int = 16
+    min_overlap: int = 16            # minimum overlap (px) between adjacent tiles
     # checkpoints
-    save_models_dir: str | os.PathLike | None = None
-    save_every_epochs: int = 25
+    save_models_dir: str | os.PathLike | None = None  # dir for weight checkpoints, or None
+    save_every_epochs: int = 25      # checkpoint cadence in epochs
     # runtime
-    mixed_precision_warn: bool = True
+    mixed_precision_warn: bool = True  # print the active mixed-precision policy on train()
 
 # -----------------------
 # Augment
 # -----------------------
 def augment_patch(patch_in: np.ndarray, patch_target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    opt = np.random.randint(0, 4)
-    if opt == 0:
-        return patch_in, patch_target
-    if opt == 1:
-        k = np.random.randint(1, 4)
-        return np.rot90(patch_in, k), np.rot90(patch_target, k)
-    if opt == 2:
-        return np.fliplr(patch_in), np.fliplr(patch_target)
-    return np.flipud(patch_in), np.flipud(patch_target)
+    """Apply the same random dihedral (D4) transform to an input/target patch pair.
+
+    Draws a rotation k in {0,1,2,3} and a flip in {0,1}, rotates both patches by
+    90*k degrees, then flips both left-right if flip. Yields all 8 square
+    orientations with equal probability 1/8.
+
+    Args:
+        patch_in: float array, shape (p, p) or (p, p, C).
+        patch_target: float array, same shape as patch_in.
+    Returns:
+        (aug_in, aug_target) with the identical transform applied to each; shapes
+        match the inputs.
+    """
+    k = np.random.randint(0, 4)
+    flip = np.random.randint(0, 2)
+    a = np.rot90(patch_in, k)
+    b = np.rot90(patch_target, k)
+    if flip:
+        a = np.fliplr(a)
+        b = np.fliplr(b)
+    return a, b
 
 # -----------------------
 # Standardization
 # -----------------------
 def standardize_images(stack: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Per-image z-score standardization: (x - mean) / std.
+
+    Statistics are computed per image (not per stack) over all pixels. If an
+    image's std is below eps it is replaced by eps, so a constant image maps to
+    ~0 without dividing by zero.
+
+    Args:
+        stack: float array, shape (N, H, W).
+    Returns:
+        (z, means, stds) where z is float32 shape (N, H, W), and means, stds are
+        float32 shape (N,); stds holds the true per-image standard deviation sigma.
+    """
     if stack.ndim != 3:
         raise ValueError("standardize_images expects a stack with shape (N, H, W).")
     eps = 1e-8
     out, means, stds = [], [], []
     for img in stack:
-        m = float(np.mean(img)); m = m if abs(m) > eps else eps
-        z = (img / m) - 1.0
-        s = float(np.std(z)); s = s if s > eps else eps
-        out.append((z / s).astype(np.float32))
+        m = float(np.mean(img))
+        s = float(np.std(img)); s = s if s > eps else eps
+        out.append(((img - m) / s).astype(np.float32))
         means.append(m); stds.append(s)
     return np.asarray(out, np.float32), np.asarray(means, np.float32), np.asarray(stds, np.float32)
 
 def undo_standardization(img_std: np.ndarray, mean: float, std: float) -> np.ndarray:
-    return (img_std * std + 1.0) * mean
+    """Invert standardize_images: recover x = z * std + mean.
+
+    Args:
+        img_std: standardized array, any shape (e.g. (H, W)).
+        mean: the per-image mean returned by standardize_images.
+        std: the per-image std (sigma) returned by standardize_images.
+    Returns:
+        de-standardized array, same shape as img_std.
+    """
+    return img_std * std + mean
 
 # -----------------------
 # Noise2Noise sampling
 # -----------------------
 def generate_noise2noise_samples(stack: np.ndarray, n_samples: int) -> Tuple[np.ndarray, np.ndarray]:
+    """Build Noise2Noise input/target pairs by random disjoint detector splits.
+
+    For each sample, the M detector elements are split into two disjoint halves
+    (floor(M/2) and the rest); each half is averaged to form one noisy view of
+    the same scene. Input and target are independent noise realizations.
+
+    Args:
+        stack: float array, shape (M, H, W) — one image per detector element.
+        n_samples: number of pairs to draw.
+    Returns:
+        (xin, xgt), each float array shape (n_samples, H, W).
+    """
     M = stack.shape[0]
     half = int(np.floor(M / 2))
     idx_all = np.arange(M)
@@ -177,6 +228,17 @@ def generate_noise2noise_samples(stack: np.ndarray, n_samples: int) -> Tuple[np.
     return np.asarray(xin), np.asarray(xgt)
 
 def extract_random_patches(imgs_in: np.ndarray, imgs_gt: np.ndarray, patch: int) -> Tuple[np.ndarray, np.ndarray]:
+    """Crop one random square patch (same location) from each input/target image.
+
+    Args:
+        imgs_in: float array, shape (N, H, W) or (N, H, W, C).
+        imgs_gt: float array, same shape as imgs_in.
+        patch: patch side length in pixels; must not exceed H or W.
+    Returns:
+        (patches_in, patches_gt), each float32 shape (N, patch, patch, C) with a
+        trailing channel axis added if the inputs were 2D. Raises ValueError if
+        patch exceeds the image size.
+    """
     n = imgs_in.shape[0]
     out_in, out_gt = [], []
     for i in range(n):
@@ -196,6 +258,20 @@ def extract_random_patches(imgs_in: np.ndarray, imgs_gt: np.ndarray, patch: int)
 # Tiled inference helpers
 # -----------------------
 def extract_covering_patches_with_overlap_pad(image: np.ndarray, patch: int, min_overlap: int):
+    """Tile an image into overlapping square patches on a centred grid.
+
+    The grid guarantees at least `min_overlap` px overlap between neighbours and
+    is centred on the image, so edge tiles may hang off the border; out-of-bounds
+    regions are filled by edge padding.
+
+    Args:
+        image: float array, shape (H, W) or (H, W, C).
+        patch: patch side length in pixels.
+        min_overlap: minimum overlap in pixels between adjacent tiles.
+    Returns:
+        (patches, coords) — patches shape (n_tiles, patch, patch[, C]); coords is
+        a list of (top, left) ints, which may be negative for the centred grid.
+    """
     H, W = image.shape[:2]
     n_rows = int(np.ceil((H - patch) / (patch - min_overlap))) + 1
     n_cols = int(np.ceil((W - patch) / (patch - min_overlap))) + 1
@@ -225,6 +301,20 @@ def extract_covering_patches_with_overlap_pad(image: np.ndarray, patch: int, min
     return np.asarray(patches), coords
 
 def reconstruct_from_covering_patches_hann_custom(patches, coordinates, out_shape, patch):
+    """Reconstruct a full image from overlapping patches with Hann blending.
+
+    Inverse of extract_covering_patches_with_overlap_pad: overlap regions are
+    tapered with per-edge Hann windows sized to the neighbour spacing and
+    normalized by the accumulated weight so a perfect tiling reproduces the input.
+
+    Args:
+        patches: float array, shape (n_tiles, patch, patch) or (n_tiles, patch, patch, C).
+        coordinates: list of (top, left) ints as returned by the extractor.
+        out_shape: (H, W) or (H, W, C) of the output image.
+        patch: patch side length in pixels.
+    Returns:
+        reconstructed array, shape out_shape.
+    """
     H, W = out_shape[:2]; C = out_shape[2] if len(out_shape) == 3 else None
 
     row = {}
@@ -290,10 +380,12 @@ def reconstruct_from_covering_patches_hann_custom(patches, coordinates, out_shap
 # -----------------------
 @register_keras_serializable(package='Custom', name='edge_padding')
 def _edge_padding(inputs, pad_width):
+    """Symmetric-pad an NHWC tensor by pad_width on the spatial axes."""
     return tf.pad(inputs, [[0, 0], [pad_width, pad_width], [pad_width, pad_width], [0, 0]], mode='SYMMETRIC')
 
 @register_keras_serializable(package='Custom', name='pad_or_crop_to_match')
 def _pad_or_crop_to_match(inputs):
+    """Symmetric-pad or centre-crop x to match ref's spatial size; inputs=(x, ref)."""
     x, ref = inputs
     xs, rs = tf.shape(x), tf.shape(ref)
     dh, dw = rs[1] - xs[1], rs[2] - xs[2]
@@ -310,54 +402,53 @@ def _pad_or_crop_to_match(inputs):
 
 @register_keras_serializable(package='Custom', name='cast_to_float32')
 def _cast_to_float32(x):
+    """Cast a tensor to float32 (used to stabilize float16 mixed-precision output)."""
     return tf.cast(x, tf.float32)
 
 # -----------------------
 # Model
 # -----------------------
 def make_unet(cfg: DenoiseConfig) -> Model:
-    def conv_block(m, dim, instn, res, do, reg):
-        m_in = m
+    """Build the Noise2Noise U-Net used for XRF denoising.
+
+    Symmetric edge-padded 3x3 conv blocks, MaxPool downsampling and
+    UpSampling2D + 2x2 conv upsampling, with skip connections cropped/padded to
+    match. Under a float16 mixed-precision policy the output is cast to float32.
+
+    Args:
+        cfg: DenoiseConfig; uses input_channels, output_channels, start_ch,
+            depth and inc_rate.
+    Returns:
+        an uncompiled tf.keras.Model mapping (B, H, W, input_channels) ->
+        (B, H, W, output_channels).
+    """
+    def conv_block(m, dim):
         m = Lambda(_edge_padding, arguments={'pad_width': 1})(m)
-        n = Conv2D(dim, 3, activation=None, padding='valid', kernel_regularizer=reg)(m)
+        n = Conv2D(dim, 3, activation=None, padding='valid')(m)
         n = ReLU()(n)
-        if instn: n = LayerNormalization()(n)
-        if do:    n = Dropout(do)(n)
-
         n = Lambda(_edge_padding, arguments={'pad_width': 1})(n)
-        n = Conv2D(dim, 3, activation=None, padding='valid', kernel_regularizer=reg)(n)
+        n = Conv2D(dim, 3, activation=None, padding='valid')(n)
         n = ReLU()(n)
-        if instn: n = LayerNormalization()(n)
-        return Concatenate()([m_in, n]) if res else n
+        return n
 
-    def level_block(m, dim, depth, inc, do, instn, avgp, up, res, reg):
+    def level_block(m, dim, depth, inc):
         if depth > 0:
-            n = conv_block(m, dim, instn, res, do, reg)
-            if avgp:
-                m = AveragePooling2D(pool_size=(2, 2), padding='same')(n)
-            else:
-                m = MaxPooling2D(pool_size=(2, 2), padding='same')(n)
-            m = level_block(m, int(inc * dim), depth - 1, inc, do, instn, avgp, up, res, reg)
-            if up:
-                m = Lambda(_edge_padding, arguments={'pad_width': 1})(m)
-                m = Conv2DTranspose(dim, 3, strides=2, padding='valid', kernel_regularizer=reg)(m)
-            else:
-                m = UpSampling2D()(m)
-                m = Lambda(_edge_padding, arguments={'pad_width': 1})(m)
-                m = Conv2D(dim, 2, activation=None, padding='valid', kernel_regularizer=reg)(m)
-                m = ReLU()(m)
-                if instn: m = LayerNormalization()(m)
+            n = conv_block(m, dim)
+            m = MaxPooling2D(pool_size=(2, 2), padding='same')(n)
+            m = level_block(m, int(inc * dim), depth - 1, inc)
+            m = UpSampling2D()(m)
+            m = Lambda(_edge_padding, arguments={'pad_width': 1})(m)
+            m = Conv2D(dim, 2, activation=None, padding='valid')(m)
+            m = ReLU()(m)
             m = Lambda(_pad_or_crop_to_match)([m, n])
             n = Concatenate()([n, m])
-            m = conv_block(n, dim, instn, res, do, reg)
+            m = conv_block(n, dim)
         else:
-            m = conv_block(m, dim, instn, res, do, reg)
+            m = conv_block(m, dim)
         return m
 
-    reg = l1(cfg.lambda_reg) if cfg.reg_l1 else l2(cfg.lambda_reg)
     inp = Input(shape=(None, None, cfg.input_channels))
-    x = level_block(inp, cfg.start_ch, cfg.depth, cfg.inc_rate, cfg.dropout,
-                    cfg.instancenorm, cfg.averagepool, cfg.upconv, cfg.residual, reg)
+    x = level_block(inp, cfg.start_ch, cfg.depth, cfg.inc_rate)
     out = Conv2D(cfg.output_channels, 1, activation=None, use_bias=True)(x)
 
     # if mixed precision compute dtype is float16, cast output back to float32 (stable loss/metrics)
@@ -370,6 +461,21 @@ def make_unet(cfg: DenoiseConfig) -> Model:
 # Dataset / training
 # -----------------------
 def make_dataset(stack: np.ndarray, cfg: DenoiseConfig) -> tf.data.Dataset:
+    """Build an infinite tf.data pipeline of augmented Noise2Noise patch pairs.
+
+    Pipeline order per batch: random disjoint split of detector elements -> mean
+    of each half -> per-image z-score of each full half-average -> random matching
+    patch -> random D4 orientation. Standardization uses full-image statistics and
+    precedes patching; inference (predict_tiled) standardizes the full image before
+    tiling for the same reason.
+
+    Args:
+        stack: float array, shape (M, H, W) — one image per detector element.
+        cfg: DenoiseConfig; uses batch_size and patch_size.
+    Returns:
+        a prefetched tf.data.Dataset yielding (input, target) float32 tensors,
+        each shape (batch_size, patch_size, patch_size, 1).
+    """
     def gen():
         while True:
             xin, xgt = generate_noise2noise_samples(stack, cfg.batch_size)
@@ -391,16 +497,22 @@ def make_dataset(stack: np.ndarray, cfg: DenoiseConfig) -> tf.data.Dataset:
     )
     return ds.prefetch(tf.data.AUTOTUNE)
 
-def tf_log10(x): return tf.math.log(x) / tf.math.log(tf.constant(10.0, dtype=x.dtype))
-
-def PSNR(y_true, y_pred):
-    y_pred = tf.clip_by_value(y_pred, 0.0, 1.0)
-    mse = tf.reduce_mean(tf.square(y_pred - y_true)) + 1e-8
-    return 10.0 * tf_log10(1.0 / mse)
-
-def mse_loss(y_true, y_pred): return tf.reduce_mean(tf.square(y_true - y_pred))
+def mse_loss(y_true, y_pred):
+    """Mean squared error between target and prediction (scalar tensor)."""
+    return tf.reduce_mean(tf.square(y_true - y_pred))
 
 def train(stack: np.ndarray, cfg: DenoiseConfig) -> Tuple[Model, tf.keras.callbacks.History]:
+    """Compile (Adam + MSE) and fit a U-Net on Noise2Noise pairs from a stack.
+
+    Optionally saves weights-only checkpoints every cfg.save_every_epochs epochs
+    when cfg.save_models_dir is set.
+
+    Args:
+        stack: float array, shape (M, H, W) — one image per detector element.
+        cfg: DenoiseConfig controlling model, optimizer and training schedule.
+    Returns:
+        (model, history) — the trained tf.keras.Model and its fit History.
+    """
     if cfg.mixed_precision_warn:
         try:
             from tensorflow.keras import mixed_precision as _mp
@@ -409,7 +521,7 @@ def train(stack: np.ndarray, cfg: DenoiseConfig) -> Tuple[Model, tf.keras.callba
             pass
 
     model = make_unet(cfg)
-    model.compile(optimizer=Adam(learning_rate=cfg.lr), loss=mse_loss, metrics=[PSNR])
+    model.compile(optimizer=Adam(learning_rate=cfg.lr), loss=mse_loss, metrics=[])
 
     callbacks = []
     if cfg.save_models_dir:
@@ -432,6 +544,19 @@ def train(stack: np.ndarray, cfg: DenoiseConfig) -> Tuple[Model, tf.keras.callba
 # Inference
 # -----------------------
 def predict_tiled(img2d: np.ndarray, model: Model, cfg: DenoiseConfig) -> np.ndarray:
+    """Denoise a single 2D image via overlap-tiled inference and Hann blending.
+
+    Standardizes the full image first (full-image statistics, as in training),
+    tiles it with overlap and edge padding, runs the model per tile, blends the
+    tiles back with Hann windows, then undoes standardization.
+
+    Args:
+        img2d: float array, shape (H, W).
+        model: a trained U-Net from make_unet/train.
+        cfg: DenoiseConfig; uses patch_size and min_overlap.
+    Returns:
+        denoised image, float array shape (H, W), in the input's units.
+    """
     if img2d.ndim != 2:
         raise ValueError("predict_tiled expects a single 2D image.")
     H, W = img2d.shape
