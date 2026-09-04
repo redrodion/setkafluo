@@ -1,5 +1,7 @@
 # SetkaFluo: a Multi-Element Detector Denoising Framework
 
+[![DOI](https://zenodo.org/badge/1101518716.svg)](https://doi.org/10.5281/zenodo.22282669)
+
 Tired of averaging your multi-element detector data and pretending that's the best we can do? Convinced there must be a smarter way? **SetkaFluo** is exactly that: a small library built to squeeze more information out of the data you already collect.
 
 Using the Noise2Noise framework, SetkaFluo takes advantage of what your experiment naturally provides: repeated, independent noisy observations of the same underlying signal. Whether you're working with XRF or any modality where multiple detector elements observe the same spot, the structure is consistent and only the noise changes. That's exactly what we exploit.
@@ -18,26 +20,11 @@ This package is the core implementation of our manuscript:
 
 ---
 
-## Main contributors
-
-This repository is jointly developed and maintained by:
-
-- **Rodion Shishkov** – main developer (ESRF, UGA)  
-- **Dmitry Karpov** – co-developer and supervising contributor (CEA, UGA, ESRF)  
-
-Other scientific contributors are listed in the preprint.
-
----
-
-
-## How to Test-Drive This Library Through Dedicated Jupyter Notebooks Using Google Colab
+## Quick start: Google Colab
 
 The fastest way to explore **SetkaFluo** is to run the tutorial notebooks directly in Google Colab, using the example datasets published on Zenodo.
 
 This setup requires **no local installation**, **no GPU configuration**, and **no manual environment management**. A free Google account is sufficient.
-
-For the local installation:
-➡ **[Jump to: Repository Overview & Installation](#repository-overview)**
 
 ### 1. Download the Example Dataset (Zenodo)
 
@@ -55,119 +42,62 @@ These datasets correspond to the manuscript:
 > *Self-Supervised Deep-Learning Denoising for X-Ray Fluorescence Microscopy with Multi-Element Detectors.*  
 > Analytical Chemistry (2026); [10.1021/acs.analchem.5c05552](https://doi.org/10.1021/acs.analchem.5c05552)
 
-### 2. Set Up Your Google Drive Folder
+### 2. Set up your Google Drive folder
 
-In your Google Drive, create:
-```
-MyDrive/setkafluo_demo/
-```
-
-Place and unzip both archives inside this folder. After extraction, you should have:
+In Google Drive create a folder `setkafluo_demo` directly under **My Drive** and
+upload both Zenodo archives (`input_data.zip`, `training.zip`) into it. Unzip them
+inside Drive (do not unzip on your computer and re-upload — the extracted data are
+large): right-click each archive → **Open with** → **ZIP Extractor** (if it is not
+listed, choose **Connect more apps** and add it). Authorise ZIP Extractor to access
+your Drive when asked, then click **Extract to Drive**. Afterwards the folder must
+look exactly like this — the notebooks hard-code these names:
 ```
 MyDrive/setkafluo_demo/input_data/
 MyDrive/setkafluo_demo/training/
 ```
 
-### 3. Add the Notebooks and Library Code
+You can delete the `.zip` files afterwards. Training checkpoints and predictions
+written by the notebooks also go under `setkafluo_demo/`.
 
-From this GitHub repository, copy:
-- the five tutorial notebooks, and
-- the `libs/` directory
+### 3. Open a notebook from GitHub
 
-into:
-```
-MyDrive/setkafluo_demo/notebooks_and_library/
-    01_data_exploration.ipynb
-    02_denoising_prep.ipynb
-    03_denoising_params.ipynb
-    04_denoising_main.ipynb
-    05_denoising_compare.ipynb
-    libs/
-```
+Go to https://colab.research.google.com/ and click **Upload notebook**. In the
+**Open notebook** dialog that appears, select the **GitHub** tab on the left, paste
+`redrodion/setkafluo` into the repository field, keep branch `main`, and click the
+notebook you want. Nothing is uploaded or copied to Drive — Colab loads the notebook
+straight from the repository. Alternatively use the **Open in Colab** badges in the
+table below. For notebooks 03 and 04, set a GPU runtime first: **Runtime → Change
+runtime type → T4 GPU**.
 
-This reproduces the environment used to generate the figures and benchmarks shown in the paper and preprint.
+### 4. Run it
 
-### 4. Run the Notebooks in Google Colab
+| Notebook | Open in Colab | What it does |
+|---|---|---|
+| `01_data_exploration.ipynb` | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/redrodion/setkafluo/blob/main/01_data_exploration.ipynb) | Load fitted XRF maps, inspect detector-element images and spectra, and explore basic visualisation options. |
+| `02_denoising_prep.ipynb` | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/redrodion/setkafluo/blob/main/02_denoising_prep.ipynb) | Build Noise2Noise training pairs by splitting detector-element maps into two independent groups, extract patch datasets, and prepare input/target tensors. |
+| `03_denoising_params.ipynb` | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/redrodion/setkafluo/blob/main/03_denoising_params.ipynb) | Experiment with training hyperparameters (patch size, batch size, learning rate, detector-element grouping) and inspect their effect on convergence and metrics. |
+| `04_denoising_main.ipynb` | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/redrodion/setkafluo/blob/main/04_denoising_main.ipynb) | Run the main training workflow for the U-Net denoiser on Siemens star and/or cell datasets, saving trained models and logs. |
+| `05_denoising_compare.ipynb` | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/redrodion/setkafluo/blob/main/05_denoising_compare.ipynb) | Apply trained models to low-dose maps, compare against classical denoisers and high-dose references, and reproduce the quantitative metrics and figures reported in the paper. |
 
-Open any of the notebooks through Colab.
+Run the cells top to bottom. Near the top of each notebook, one cell mounts your
+Google Drive — Colab will ask you to authorise access; accept — and another installs
+SetkaFluo from GitHub. If an import fails right after the install cell, use **Runtime
+→ Restart session** and run again from the top. Edits you make in Colab stay in your
+session; nothing is written back to the repository. Run the notebooks in order
+`01` → `05`; a free T4 runtime suffices.
 
-All paths are already configured to expect the dataset under:
-```
-MyDrive/setkafluo_demo/
-```
-
-The notebooks will run without modification on standard Colab GPU runtimes.
-
-### Local Installation
-
-If you prefer to run the library on your own workstation (Python environment + TensorFlow), see:
-
+Prefer your own machine? See [Local installation](#local-installation).
 
 ---
 
-## Repository overview
-
-The repository is organized in two main parts:
-
-- **`libs/` – core library**
-
-  This folder contains the reusable Python code that implements the SetkaFluo pipeline.
-  It can be imported from your own scripts or used directly in the notebooks.
-
-  - `libs/data_explorer.py`  
-    Utilities for loading and exploring XRF hyperspectral data, including:
-    - reading fitted elemental maps and detector-element images,
-    - basic visualisation helpers (line profiles, spectra, map overlays),
-    - helpers for constructing weighted-sum maps.
-
-  - `libs/denoise.py`  
-    Implementation of the Noise2Noise U-Net and training/inference helpers, including:
-    - model construction and configuration,
-    - creation of training datasets from detector-element splits,
-    - training loops and logging utilities,
-    - tiled prediction functions for large XRF maps.
-
-  - `libs/denoise_benchmark.py`  
-    Utilities for timing and benchmarking denoising runs, e.g.:
-    - measuring throughput for different patch/stride settings,
-    - simple wrappers to reproduce the runtime comparisons in the paper.
-
-- **Jupyter notebooks – end-to-end examples**
-
-  The notebooks demonstrate how to use the library functions in practical workflows
-  and reproduce the main analyses from the paper:
-
-  - `01_data_exploration.ipynb`  
-    Load fitted XRF maps, inspect detector-element images and spectra,
-    and explore basic visualisation options.
-
-  - `02_denoising_prep.ipynb`  
-    Build Noise2Noise training pairs by splitting detector-element maps into
-    two independent groups, extract patch datasets, and prepare input/target tensors.
-
-  - `03_denoising_params.ipynb`  
-    Experiment with training hyperparameters (patch size, batch size, learning rate,
-    detector-element grouping) and inspect their effect on convergence and metrics.
-
-  - `04_denoising_main.ipynb`  
-    Run the main training workflow for the U-Net denoiser on Siemens star
-    and/or cell datasets, saving trained models and logs.
-
-  - `05_denoising_compare.ipynb`  
-    Apply trained models to low-dose maps, compare against classical denoisers
-    and high-dose references, and reproduce the quantitative metrics and figures
-    reported in the paper.
-
----
-
-## Installation
+## Local installation
 
 We strongly recommend using a **dedicated virtual environment** for this project.
 
 TensorFlow is the core dependency and should be installed following the official
 instructions for your OS and hardware (CPU/GPU). For this reason, **TensorFlow is
-not included in `requirements.txt` or `environment.yml`** – you install it first,
-then install the remaining dependencies.
+not a declared dependency of the package** – you install it first, then install
+the package. (If you prefer, `pip install -e ".[tf]"` installs it as an extra.)
 
 ### 1. Create a virtual environment and install TensorFlow
 
@@ -202,37 +132,20 @@ python -c "import tensorflow as tf; print(tf.__version__)"
 > but install TensorFlow itself with `pip` inside the environment, as recommended
 > in the official docs.
 
-### 2. Clone this repository
+### 2. Clone and install the package
 
 With the virtual environment **activated**:
 ```bash
 git clone https://github.com/redrodion/setkafluo.git
 cd setkafluo
-```
-
-### 3. Install Python dependencies
-
-There are two equivalent options:
-
-#### Option A – `pip` + `requirements.txt` (simple)
-```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 This installs all dependencies **except TensorFlow**, which you already installed
-in step 1.
-
-#### Option B – `conda` + `environment.yml` (if you prefer conda)
-
-You can create a conda environment pre-populated with the non-TensorFlow
-dependencies:
+in step 1. Alternatively, install TensorFlow in one shot as an optional extra:
 ```bash
-conda env create -f environment.yml
-conda activate setkafluo
+pip install -e ".[tf]"
 ```
-
-Then, inside this conda environment, install TensorFlow using `pip` as described
-in step 1 (following the official TensorFlow guide for your platform/GPU).
 
 ---
 
@@ -240,35 +153,18 @@ in step 1 (following the official TensorFlow guide for your platform/GPU).
 
 Once the environment is set up and dependencies are installed:
 
-1. **Launch Jupyter**
+1. **Use the library in your own scripts**
 
-   From the activated environment:
-```bash
-   jupyter lab
-   # or
-   jupyter notebook
-```
-
-2. **Run the notebooks in order**
-
-   - Start with `01_data_exploration.ipynb` to familiarise yourself with the data.
-   - Use `02_denoising_prep.ipynb` to generate Noise2Noise training patches.
-   - Adjust hyperparameters in `03_denoising_params.ipynb` if desired.
-   - Train the model in `04_denoising_main.ipynb`.
-   - Evaluate and compare results in `05_denoising_compare.ipynb`.
-
-3. **Use the library in your own scripts**
-
-   You can also import the core functions directly:
+   Import the core functions directly:
 ```python
-   from libs.denoise import (
+   from setkafluo.denoise import (
        make_unet,
        make_dataset,
        train,
        predict_tiled,
    )
 
-   from libs.data_explorer import (
+   from setkafluo.data_explorer import (
        load_npz_cube_channels_last,
        sum_channels_window,
    )
@@ -277,28 +173,131 @@ Once the environment is set up and dependencies are installed:
    See the notebooks for concrete examples of how to construct training pairs,
    configure the model, and run inference on large XRF maps.
 
+2. **Run the tests**
+
+   With the dev extra installed (`pip install -e ".[dev]"`):
+```bash
+   pytest
+```
+
+3. **Notebooks on your own machine**
+
+   The notebooks are written for Colab: they mount Google Drive and read from
+   `/content/drive/MyDrive/setkafluo_demo/`. To run them locally, skip the install
+   and Drive-mount cells and set the base-path variable to a local copy of the
+   `setkafluo_demo/` tree.
+
+---
+
+## Repository overview
+
+The repository is organized in two main parts:
+
+- **`setkafluo/` – core library**
+
+  This folder contains the reusable Python code that implements the SetkaFluo pipeline.
+  It can be imported from your own scripts or used directly in the notebooks.
+
+  - `setkafluo/data_explorer.py`  
+    Utilities for loading and exploring XRF hyperspectral data, including:
+    - reading fitted elemental maps and detector-element images,
+    - basic visualisation helpers (line profiles, spectra, map overlays),
+    - helpers for constructing weighted-sum maps.
+
+  - `setkafluo/denoise.py`  
+    Implementation of the Noise2Noise U-Net and training/inference helpers, including:
+    - model construction and configuration,
+    - creation of training datasets from detector-element splits,
+    - training loops and logging utilities,
+    - tiled prediction functions for large XRF maps.
+
+  - `setkafluo/denoise_benchmark.py`  
+    Utilities for timing and benchmarking denoising runs, e.g.:
+    - measuring throughput for different patch/stride settings,
+    - simple wrappers to reproduce the runtime comparisons in the paper.
+
+- **Jupyter notebooks – end-to-end examples**
+
+  The notebooks demonstrate how to use the library functions in practical workflows
+  and reproduce the main analyses from the paper:
+
+  - `01_data_exploration.ipynb`  
+    Load fitted XRF maps, inspect detector-element images and spectra,
+    and explore basic visualisation options.
+
+  - `02_denoising_prep.ipynb`  
+    Build Noise2Noise training pairs by splitting detector-element maps into
+    two independent groups, extract patch datasets, and prepare input/target tensors.
+
+  - `03_denoising_params.ipynb`  
+    Experiment with training hyperparameters (patch size, batch size, learning rate,
+    detector-element grouping) and inspect their effect on convergence and metrics.
+
+  - `04_denoising_main.ipynb`  
+    Run the main training workflow for the U-Net denoiser on Siemens star
+    and/or cell datasets, saving trained models and logs.
+
+  - `05_denoising_compare.ipynb`  
+    Apply trained models to low-dose maps, compare against classical denoisers
+    and high-dose references, and reproduce the quantitative metrics and figures
+    reported in the paper.
+
+---
+
+## Versions
+
+The code used for the paper is tagged `v0.1.0-paper` and archived at
+https://doi.org/10.5281/zenodo.22282670. `main` is the maintained version (see
+`CHANGELOG.md`). To reproduce the paper exactly: `git checkout v0.1.0-paper`.
+
+What changed in `v0.2.0`:
+- Package renamed `libs` → `setkafluo`; pip-installable (`pip install -e .`).
+- Standardization rewritten as a plain per-image z-score (numerically identical; returned `std` is now σ rather than σ/μ).
+- Augmentation now samples all 8 square orientations uniformly (was 6, non-uniform).
+- Removed the PSNR monitoring metric (invalid on z-scored data; never affected training or published results).
+- Removed unused architecture options (`dropout`, `instancenorm`, `averagepool`, `upconv`, `residual`, `lambda_reg`, `reg_l1`) and the custom `nullcontext`.
+- Added docstrings with array shapes and a `pytest` test suite. The U-Net layer sequence is unchanged, so `v0.1.0-paper` weights load unchanged.
+
+---
+
+## Advanced
+
+- **Mixed precision.** The model is mixed-precision ready but runs in float32 by
+  default (as in the paper). To enable float16 compute on GPUs with tensor cores,
+  set the global Keras policy before building the model —
+  `from tensorflow.keras import mixed_precision; mixed_precision.set_global_policy("mixed_float16")` —
+  then call `train()` as usual. The output layer is cast back to float32
+  automatically and Keras applies loss scaling to the optimizer; no other changes
+  are needed. The tutorial notebooks 02–04 enable this policy in one of their
+  first cells; the library itself never sets it.
+
 ---
 
 ## Data and external resources
 
-- **Preprint (ChemRxiv)** – full method and evaluation:  
-  https://doi.org/10.26434/chemrxiv-2025-lsxpc 
+- **Article (Analytical Chemistry)** – full method and evaluation:  
+  https://doi.org/10.1021/acs.analchem.5c05552
+
+- **Preprint (ChemRxiv)** – open-access version:  
+  https://doi.org/10.26434/chemrxiv-2025-lsxpc
 
 - **Public dataset (Zenodo)** – Siemens star and human cancer cell XRF data used
   in the paper:  
   https://doi.org/10.5281/zenodo.17871605
 
-Please consult the preprint for detailed information about sample preparation,
+Please consult the article for detailed information about sample preparation,
 acquisition parameters, and preprocessing.
 
 ---
 
-## Authors and affiliations
+## Authors
 
-Main contributors of this repository:
+This repository is jointly developed and maintained by:
 
-- **Rodion Shishkov** – ESRF, Université Grenoble Alpes (UGA)  
-- **Dmitry Karpov** – CEA / IRIG-MEM, Université Grenoble Alpes (UGA), ESRF  
+- **Rodion Shishkov** – main developer. ESRF, Université Grenoble Alpes (UGA).  
+- **Dmitry Karpov** – co-developer and supervising contributor. CEA / IRIG-MEM, Université Grenoble Alpes (UGA), ESRF.  
+
+Other scientific contributors are listed in the article.
 
 ---
 
@@ -324,16 +323,15 @@ See the `LICENSE` file for the full legal text.
 
 If you use this code in your work, please cite:
 
-1. The preprint / article:
+1. The article (and preprint):
 
 > R. Shishkov, A. Laugros, N. Vigano, S. Bohic, D. Karpov, P. Cloetens  
 > *Self-Supervised Deep-Learning Denoising for X-Ray Fluorescence Microscopy with Multi-Element Detectors*  
-> ChemRxiv (2025), DOI: [10.26434/chemrxiv-2025-lsxpc](https://doi.org/10.26434/chemrxiv-2025-lsxpc)
+> Analytical Chemistry (2026), DOI: [10.1021/acs.analchem.5c05552](https://doi.org/10.1021/acs.analchem.5c05552)  
+> Preprint: ChemRxiv (2025), DOI: [10.26434/chemrxiv-2025-lsxpc](https://doi.org/10.26434/chemrxiv-2025-lsxpc)
 
-2. This code repository (GitHub URL and version / commit hash), e.g.:
+2. This code repository:
 
-> R. Shishkov and D. Karpov  
-> *SetkaFluo: Noise2Noise Denoising for XRF with Multi-Element Detectors (code repository)*  
+> R. Shishkov and D. Karpov. *SetkaFluo: Noise2Noise Denoising for XRF with Multi-Element Detectors* (software), version `v0.1.0-paper`. Zenodo (2026). https://doi.org/10.5281/zenodo.22282670
 
-> GitHub, https://github.com/redrodion/setkafluo (accessed YYYY-MM-DD)
-
+For the latest version use the concept DOI https://doi.org/10.5281/zenodo.22282669.

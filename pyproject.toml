@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "setkafluo"
+version = "0.2.0"
+description = "SetkaFluo: a Multi-Element Detector Denoising Framework"
+requires-python = ">=3.10"
+license = {text = "CC-BY-NC-4.0"}
+readme = "README.md"
+authors = [
+    {name = "Rodion Shishkov", email = "rodion.shishkov@esrf.fr"},
+    {name = "Dmitry Karpov", email = "dmitry.karpov@univ-grenoble-alpes.fr"},
+]
+dependencies = [
+    "numpy>=1.21",
+    "matplotlib>=3.5",
+    "tifffile>=2021.7.2",
+    "imageio>=2.9",
+    "Pillow>=8.0",
+    "ipywidgets>=7.6",
+    "IPython>=7.0",
+]
+
+[project.optional-dependencies]
+tf = ["tensorflow>=2.13"]
+notebooks = ["jupyter"]
+dev = ["pytest>=7"]
+
+[project.urls]
+Repository = "https://github.com/redrodion/setkafluo"
+"Paper DOI" = "https://doi.org/10.1021/acs.analchem.5c05552"
+"Dataset DOI" = "https://doi.org/10.5281/zenodo.17871605"
+
+[tool.setuptools.packages.find]
+include = ["setkafluo*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

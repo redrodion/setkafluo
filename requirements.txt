@@ -1,9 +1,1 @@
-numpy
-matplotlib
-tifffile
-imageio
-Pillow
-ipywidgets
-IPython
-jupyter
-
+# Dependencies are declared in pyproject.toml. Install the package with:  pip install -e .
