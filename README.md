@@ -268,7 +268,8 @@ What changed in `v0.2.0`:
   `from tensorflow.keras import mixed_precision; mixed_precision.set_global_policy("mixed_float16")` —
   then call `train()` as usual. The output layer is cast back to float32
   automatically and Keras applies loss scaling to the optimizer; no other changes
-  are needed.
+  are needed. The tutorial notebooks 02–04 enable this policy in one of their
+  first cells; the library itself never sets it.
 
 ---
 

@@ -3,7 +3,7 @@
 All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.2.0]
+## [0.2.0] - 2026-09-04
 
 ### Changed
 - Package renamed `libs` → `setkafluo`; now pip-installable (`pip install -e .`).
