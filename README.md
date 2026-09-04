@@ -42,20 +42,34 @@ These datasets correspond to the manuscript:
 > *Self-Supervised Deep-Learning Denoising for X-Ray Fluorescence Microscopy with Multi-Element Detectors.*  
 > Analytical Chemistry (2026); [10.1021/acs.analchem.5c05552](https://doi.org/10.1021/acs.analchem.5c05552)
 
-### 2. Set Up Your Google Drive Folder
+### 2. Set up your Google Drive folder
 
-In your Google Drive, create:
-```
-MyDrive/setkafluo_demo/
-```
-
-Place and unzip both archives inside this folder. After extraction, you should have:
+In Google Drive create a folder `setkafluo_demo` directly under **My Drive** and
+upload both Zenodo archives (`input_data.zip`, `training.zip`) into it. Unzip them
+inside Drive (do not unzip on your computer and re-upload — the extracted data are
+large): right-click each archive → **Open with** → **ZIP Extractor** (if it is not
+listed, choose **Connect more apps** and add it). Authorise ZIP Extractor to access
+your Drive when asked, then click **Extract to Drive**. Afterwards the folder must
+look exactly like this — the notebooks hard-code these names:
 ```
 MyDrive/setkafluo_demo/input_data/
 MyDrive/setkafluo_demo/training/
 ```
 
-### 3. Open and run the notebooks
+You can delete the `.zip` files afterwards. Training checkpoints and predictions
+written by the notebooks also go under `setkafluo_demo/`.
+
+### 3. Open a notebook from GitHub
+
+Go to https://colab.research.google.com/ and click **Upload notebook**. In the
+**Open notebook** dialog that appears, select the **GitHub** tab on the left, paste
+`redrodion/setkafluo` into the repository field, keep branch `main`, and click the
+notebook you want. Nothing is uploaded or copied to Drive — Colab loads the notebook
+straight from the repository. Alternatively use the **Open in Colab** badges in the
+table below. For notebooks 03 and 04, set a GPU runtime first: **Runtime → Change
+runtime type → T4 GPU**.
+
+### 4. Run it
 
 | Notebook | Open in Colab | What it does |
 |---|---|---|
@@ -65,7 +79,12 @@ MyDrive/setkafluo_demo/training/
 | `04_denoising_main.ipynb` | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/redrodion/setkafluo/blob/main/04_denoising_main.ipynb) | Run the main training workflow for the U-Net denoiser on Siemens star and/or cell datasets, saving trained models and logs. |
 | `05_denoising_compare.ipynb` | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/redrodion/setkafluo/blob/main/05_denoising_compare.ipynb) | Apply trained models to low-dose maps, compare against classical denoisers and high-dose references, and reproduce the quantitative metrics and figures reported in the paper. |
 
-In each notebook, the first code cell installs SetkaFluo from GitHub; an early cell mounts your Google Drive. All paths expect the dataset under `MyDrive/setkafluo_demo/`. Run the notebooks in order, `01` → `05`. A free T4 runtime suffices.
+Run the cells top to bottom. Near the top of each notebook, one cell mounts your
+Google Drive — Colab will ask you to authorise access; accept — and another installs
+SetkaFluo from GitHub. If an import fails right after the install cell, use **Runtime
+→ Restart session** and run again from the top. Edits you make in Colab stay in your
+session; nothing is written back to the repository. Run the notebooks in order
+`01` → `05`; a free T4 runtime suffices.
 
 Prefer your own machine? See [Local installation](#local-installation).
 
