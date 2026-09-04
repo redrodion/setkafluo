@@ -45,7 +45,7 @@ Please acknowledge by citing:
   Analytical Chemistry. 2026; doi:10.1021/acs.analchem.5c05552
   Preprint: ChemRxiv. 2025; doi:10.26434/chemrxiv-2025-lsxpc
 
-License: CC BY-NC 4.0 — © 2025 European Synchrotron Radiation Facility (ESRF).
+License: CC BY-NC 4.0. © 2025 European Synchrotron Radiation Facility (ESRF).
 
 This module provides:
 - DenoiseConfig: small, explicit configuration container (paths, LR, epochs, patch size, overlap).
@@ -113,10 +113,7 @@ def load_tiff(path: str | os.PathLike) -> np.ndarray:
 # -----------------------
 @dataclass
 class DenoiseConfig:
-    """Configuration for U-Net training and tiled inference.
-
-    Each field is documented with a trailing comment below.
-    """
+    """Configuration for U-Net training and tiled inference."""
     # data / training
     lr: float = 1e-5                 # Adam learning rate
     batch_size: int = 4              # patches per training batch
@@ -213,7 +210,7 @@ def generate_noise2noise_samples(stack: np.ndarray, n_samples: int) -> Tuple[np.
     the same scene. Input and target are independent noise realizations.
 
     Args:
-        stack: float array, shape (M, H, W) — one image per detector element.
+        stack: float array, shape (M, H, W), one image per detector element.
         n_samples: number of pairs to draw.
     Returns:
         (xin, xgt), each float array shape (n_samples, H, W).
@@ -271,7 +268,7 @@ def extract_covering_patches_with_overlap_pad(image: np.ndarray, patch: int, min
         patch: patch side length in pixels.
         min_overlap: minimum overlap in pixels between adjacent tiles.
     Returns:
-        (patches, coords) — patches shape (n_tiles, patch, patch[, C]); coords is
+        (patches, coords): patches shape (n_tiles, patch, patch[, C]); coords is
         a list of (top, left) ints, which may be negative for the centred grid.
     """
     H, W = image.shape[:2]
@@ -472,7 +469,7 @@ def make_dataset(stack: np.ndarray, cfg: DenoiseConfig) -> tf.data.Dataset:
     tiling for the same reason.
 
     Args:
-        stack: float array, shape (M, H, W) — one image per detector element.
+        stack: float array, shape (M, H, W), one image per detector element.
         cfg: DenoiseConfig; uses batch_size and patch_size.
     Returns:
         a prefetched tf.data.Dataset yielding (input, target) float32 tensors,
@@ -510,10 +507,10 @@ def train(stack: np.ndarray, cfg: DenoiseConfig) -> Tuple[Model, tf.keras.callba
     when cfg.save_models_dir is set.
 
     Args:
-        stack: float array, shape (M, H, W) — one image per detector element.
+        stack: float array, shape (M, H, W), one image per detector element.
         cfg: DenoiseConfig controlling model, optimizer and training schedule.
     Returns:
-        (model, history) — the trained tf.keras.Model and its fit History.
+        (model, history): the trained tf.keras.Model and its fit History.
     """
     if cfg.mixed_precision_warn:
         try:
