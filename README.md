@@ -273,6 +273,18 @@ Once the environment is set up and dependencies are installed:
 
 ---
 
+## Advanced
+
+- **Mixed precision.** The model is mixed-precision ready but runs in float32 by
+  default (as in the paper). To enable float16 compute on GPUs with tensor cores,
+  set the global Keras policy before building the model —
+  `from tensorflow.keras import mixed_precision; mixed_precision.set_global_policy("mixed_float16")` —
+  then call `train()` as usual. The output layer is cast back to float32
+  automatically and Keras applies loss scaling to the optimizer; no other changes
+  are needed.
+
+---
+
 ## Data and external resources
 
 - **Preprint (ChemRxiv)** – full method and evaluation:  
